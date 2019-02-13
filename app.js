@@ -5,6 +5,8 @@ app.use(require("body-parser").json());
 
 const events = [];
 
+const Event = require("./models/event");
+
 app.use("/graphql", require("express-graphql")({
   schema: buildSchema(`
     type Event {
@@ -36,23 +38,38 @@ app.use("/graphql", require("express-graphql")({
   `),
   rootValue: {
     events: () => {
-      return events;
+      return Event
+        .find()
+        .then(events => {
+          return events.map(events => { return { ...events._doc } });
+        })
+        .catch(err => {
+          throw err
+        });
     },
     createEvent: (args) => {
-      const event = {
-        _id: Math.random().toString(),
+      const event = new Event({
         title: args.eventInput.title,
         description: args.eventInput.description,
         price: +args.eventInput.price,
         date: new Date().toISOString(),
-      }
+      });
+      return event
+        .save()
+        .then(result => {
+          console.log(result);
+          return { ...result._doc };
+        })
+        .catch(err => console.log(err));
 
-      events.push(event);
 
-      return event;
+
     }
   },
   graphiql: true,
 }));
 
-app.listen(3001);
+require("mongoose")
+  .connect(`mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@julianfr-academind-node-shop-large.mongodb.net/${process.env.MONGO_DB}?retryWrites=true`, { useNewUrlParser: true })
+  .then(() => app.listen(3001))
+  .catch(error => console.log(error))
