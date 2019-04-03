@@ -1,4 +1,5 @@
 const Event = require("../../models/event");
+const User = require("../../models/user");
 
 const { dateToString } = require("../../helpers/date");
 const { mapEvent } = require("../../helpers/merge");
@@ -14,13 +15,15 @@ module.exports = {
     }
   },
 
-  createEvent: async args => {
+  createEvent: async (args, req) => {
+    if (!req.isAuth) throw new Error("Unauthorized");
+
     const event = new Event({
       title: args.event.title,
       description: args.event.description,
       price: +args.event.price,
       date: dateToString(),
-      user: "5c6d63af8367d62d6c62deb1",
+      user: req.user,
     });
 
     try {

@@ -1,6 +1,7 @@
 const app = require("express")();
 
 app.use(require("body-parser").json());
+app.use(require("./middleware/authenticate"));
 
 app.use("/graphql", require("express-graphql")({
   schema: require("./graphql/schema"),

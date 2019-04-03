@@ -4,7 +4,9 @@ const Booking = require("../../models/booking");
 const { findUser, mapBooking, mapEvent } = require("../../helpers/merge");
 
 module.exports = {
-  bookings: async () => {
+  bookings: async (args, req) => {
+    if (!req.isAuth) throw new Error("Unauthorized");
+
     try {
       const bookings = await Booking.find();
 
@@ -14,15 +16,14 @@ module.exports = {
       throw error;
     }
   },
-  createBooking: async args => {
+  createBooking: async (args, req) => {
+    if (!req.isAuth) throw new Error("Unauthorized");
+
     try {
       const event = await Event.findById(args.event);
 
       if (event) {
-        const booking = new Booking({
-          user: "5c6d63af8367d62d6c62deb1",
-          event,
-        });
+        const booking = new Booking({ user: req.user, event });
 
         const b = await booking.save();
 
@@ -35,7 +36,9 @@ module.exports = {
       throw error;
     }
   },
-  deleteBooking: async args => {
+  deleteBooking: async (args, req) => {
+    if (!req.isAuth) throw new Error("Unauthorized");
+
     try {
       const booking = await Booking.findById(args.booking).populate("event");
 
