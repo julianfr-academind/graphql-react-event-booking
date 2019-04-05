@@ -1,10 +1,36 @@
 import React, { Component } from "react";
+import authContext from "../context/auth-context";
 import "./Auth.css";
+
+const login = (email, password) => ({
+  query: `
+    query {
+      login(email:"${email}", password:"${password}") {
+        user
+        token
+        expiration
+      }
+    }
+  `
+});
+
+const createUser = (email, password) => ({
+  query: `
+  mutation {
+    createUser(user:{ email:"${email}", password:"${password}"}) {
+      _id
+      email
+    }
+  }
+`
+});
 
 class AuthPage extends Component {
   state = {
     isLogin: true
   };
+
+  static contextType = authContext;
 
   constructor(props) {
     super(props);
@@ -26,28 +52,7 @@ class AuthPage extends Component {
 
     if (email.trim().length === 0 || password.trim().length === 0) return;
 
-    let query = this.state.isLogin
-      ? {
-          query: `
-      query {
-        login(email:"${email}", password:"${password}") {
-          user
-          token
-          expiration
-        }
-      }
-      `
-        }
-      : {
-          query: `
-          mutation {
-            createUser(user:{ email:"${email}", password:"${password}"}) {
-              _id
-              email
-            }
-          }
-        `
-        };
+    let query = this.state.isLogin ? login(email, password) : createUser(email, password);
 
     fetch("http://localhost:3001/graphql", {
       method: "POST",
@@ -62,7 +67,11 @@ class AuthPage extends Component {
         }
         return res.json();
       })
-      .then(data => console.log(data))
+      .then(data => {
+        if (data.data.login.token) {
+          this.context.login(data.data.login.token, data.data.login.user, data.data.login.expiration);
+        }
+      })
       .catch(err => console.log(err));
   };
 
