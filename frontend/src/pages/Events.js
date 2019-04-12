@@ -14,6 +14,8 @@ class EventsPage extends Component {
     selectedEvent: null,
   };
 
+  isActive = true;
+
   static contextType = AuthContext;
 
   constructor(props) {
@@ -129,7 +131,7 @@ class EventsPage extends Component {
       })
       .then(data => {
         const events = data.data.events;
-        this.setState({ events, isLoading: false });
+        if (this.isActive) this.setState({ events, isLoading: false });
       })
       .catch(err => {
         console.log(err);
@@ -148,7 +150,52 @@ class EventsPage extends Component {
     });
   }
 
-  bookEventHandler = () => { };
+  bookEventHandler = () => {
+    if (!this.context.token) {
+      this.setState({ selectedEvent: null });
+      return;
+    };
+
+    this.setState({ isLoading: true });
+
+    const query = {
+      query: `
+        mutation {
+          createBooking(event:"${this.state.selectedEvent._id}"){
+            _id
+            createdAt
+            updatedAt
+          }
+        }
+      `
+    };
+
+    fetch("http://localhost:3001/graphql", {
+      method: "POST",
+      body: JSON.stringify(query),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + this.context.token,
+      }
+    })
+      .then(res => {
+        if (res.status !== 200 && res.status !== 201) {
+          throw new Error("Failed!");
+        }
+        return res.json();
+      })
+      .then(data => {
+        console.log(data.data);
+      })
+      .catch(err => {
+        console.log(err);
+        this.setState({ isLoading: false })
+      });
+  };
+
+  componentWillUnmount() {
+    this.isActive = false;
+  }
 
   render = () => (
     <React.Fragment>
@@ -175,7 +222,7 @@ class EventsPage extends Component {
           </form>
         </Modal>}
       {this.state.selectedEvent &&
-        <Modal title={this.state.selectedEvent.title} canCancel canConfirm onCancel={this.modalCancelHandler} onConfirm={this.modalConfirmHandler} confirmText="Book">
+        <Modal title={this.state.selectedEvent.title} canCancel canConfirm onCancel={this.modalCancelHandler} onConfirm={this.bookEventHandler} confirmText={this.context.token ? "Book" : "Confirm"}>
           <h1>{this.state.selectedEvent.title}</h1>
           <h2>${this.state.selectedEvent.price} - {new Date(this.state.selectedEvent.date).toLocaleDateString()}</h2>
           <p>{this.state.selectedEvent.description}</p>
